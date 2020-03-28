@@ -71,6 +71,7 @@ import (
 	"github.com/wtfutil/wtf/modules/weatherservices/arpansagovau"
 	"github.com/wtfutil/wtf/modules/weatherservices/prettyweather"
 	"github.com/wtfutil/wtf/modules/weatherservices/weather"
+	"github.com/wtfutil/wtf/modules/webcheck"
 	"github.com/wtfutil/wtf/modules/zendesk"
 	"github.com/wtfutil/wtf/wtf"
 )
@@ -296,6 +297,9 @@ func MakeWidget(
 	case "weather":
 		settings := weather.NewSettingsFromYAML(moduleName, moduleConfig, config)
 		widget = weather.NewWidget(app, pages, settings)
+	case "webcheck":
+		settings := webcheck.NewSettingsFromYAML(moduleName, moduleConfig, config)
+		widget = webcheck.NewWidget(app, settings)
 	case "zendesk":
 		settings := zendesk.NewSettingsFromYAML(moduleName, moduleConfig, config)
 		widget = zendesk.NewWidget(app, pages, settings)
