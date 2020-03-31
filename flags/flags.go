@@ -17,9 +17,27 @@ type Flags struct {
 	Module  string `short:"m" long:"module" optional:"yes" description:"Display info about a specific module, i.e.: 'wtfutil -m=todo'"`
 	Profile bool   `short:"p" long:"profile" optional:"yes" description:"Profile application memory usage"`
 	Version bool   `short:"v" long:"version" description:"Show version info"`
+	// Work-around go-flags misfeatures. If any sub-command is defined
+	// then `wtf` (no sub-commands, the common usage), is warned about.
+	Opt struct {
+		Cmd  string   `positional-arg-name:"command"`
+		Args []string `positional-arg-name:"args"`
+	} `positional-args:"yes"`
 
 	hasCustom bool
 }
+
+var EXTRA = `
+Commands:
+  save-secret <service> <secret> [username]
+    service      Service URL or name for secret.
+    secret       Secret to be saved for the service.
+    username     Username to associate with the service.
+  Save a secret into the secret store.  Requires wtf.secretStore
+  to be configured.  See individual modules for information on what
+  service, secret, and username means for their configuration. Not
+  all modules use secrets, and not all secrets require a username.
+`
 
 // NewFlags creates an instance of Flags
 func NewFlags() *Flags {
@@ -46,6 +64,50 @@ func (flags *Flags) RenderIf(version, date string, config *config.Config) {
 		fmt.Println(fmt.Sprintf("%s (%s)", version, date))
 		os.Exit(0)
 	}
+
+	if flags.Opt.Cmd == "" {
+		return
+	}
+
+	switch cmd := flags.Opt.Cmd; cmd {
+	case "save-secret":
+		var service, secret, username string
+		args := flags.Opt.Args
+
+		if len(flags.Opt.Args) < 2 || args[0] == "" {
+			fmt.Fprintf(os.Stderr, "save-secret: service required, see `%s --help`\n", os.Args[0])
+			os.Exit(1)
+		}
+
+		if len(flags.Opt.Args) < 2 || args[1] == "" {
+			fmt.Fprintf(os.Stderr, "save-secret: secret required, see `%s --help`\n", os.Args[0])
+			os.Exit(1)
+		}
+
+		service = args[0]
+		secret = args[1]
+
+		if len(args) > 2 {
+			username = args[2]
+		}
+
+		err := cfg.StoreSecret(config, &cfg.Secret{
+			Service:  service,
+			Secret:   secret,
+			Username: username,
+		})
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Saving secret for service %v: %s\n", service, err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Printf("Saved secret for service %v\n", service)
+		os.Exit(0)
+	default:
+		fmt.Fprintf(os.Stderr, "Command `%s` is not supported, try `%s --help`\n", cmd, os.Args[0])
+		os.Exit(1)
+	}
 }
 
 // HasCustomConfig returns TRUE if a config path was passed in, FALSE if one was not
@@ -68,6 +130,7 @@ func (flags *Flags) Parse() {
 	parser := goFlags.NewParser(flags, goFlags.Default)
 	if _, err := parser.Parse(); err != nil {
 		if flagsErr, ok := err.(*goFlags.Error); ok && flagsErr.Type == goFlags.ErrHelp {
+			fmt.Println(EXTRA)
 			os.Exit(0)
 		}
 	}
