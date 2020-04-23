@@ -4,33 +4,7 @@
 
 ### ⚡️ Added
 
-* [docker-credential-helpers](https://github.com/docker/docker-credential-helpers) support added to provide optional securing of module secrets, [#517](https://github.com/wtfutil/wtf/issues/517) by [sam-github](https://github.com/sam-github)
-
-## v0.30.0
-
-### ⚡️ Added
-
-* Expansive keyboard controls for the [GitLab](https://wtfutil.com/modules/gitlab/) module, by [@mogensen](https://github.com/mogensen)
-* [IPInfo](https://wtfutil.com/modules/ipaddress/ipinfo/) module now supports IPv6 lookup, by [@acaloiaro](https://github.com/acaloiaro)
-* The GitHub repo now runs a set of actions that lint PRs for code quality and conformity and comment in-line on the PRs. See here for action details https://github.com/wtfutil/wtf/actions
-
-### 🐞 Fixed
-
-* Random capital letters around display, [#811](https://github.com/wtfutil/wtf/issues/811) by [@jonhadfield](https://github.com/jonhadfield)
-* [Feed Reader](https://wtfutil.com/modules/feedreader/) module now properly sorts multi-feed items by date, by [@rsaarelm](https://github.com/rsaarelm)
-
-### 👍 Updated
-
-* Updated `zorkian/go-datadog-api` from 2.28.0+incompatible to 2.29.0+incompatible
-* Updated `shirou/gopsutil` from 2.20.3+incompatible to 2.20.4+incompatible
-* Updated `google.golang.org/api` from 0.22.0 to 0.23.0
-
-## 0.29.0
-
-### ⚡️ Added
-
 * gCal module now has a `showEndTime` boolean option for displaying meeting end times, by [@acaloiaro](https://github.com/acaloiaro)
-* [Pi-hole](https://wtfutil.com/modules/pihole/) module added, by [@jonhadfield](https://github.com/jonhadfield)
 
 ### 🐞 Fixed
 
