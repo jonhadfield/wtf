@@ -8,7 +8,7 @@ import (
 
 const (
 	defaultFocusable = true
-	defaultTitle     = "PingCheck"
+	defaultTitle     = "Ping"
 )
 
 type Settings struct {
@@ -16,6 +16,7 @@ type Settings struct {
 	targets     []string
 	pingTimeout int
 	showIP      bool
+	useEmoji    bool
 	format      bool
 	formatStyle string
 	wrapText    bool
@@ -27,6 +28,7 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 		targets:     utils.ToStrs(ymlConfig.UList("targets")),
 		showIP:      ymlConfig.UBool("showIP", true),
 		pingTimeout: ymlConfig.UInt("pingTimeout", 4),
+		useEmoji:    ymlConfig.UBool("useEmoji", true),
 	}
 
 	return &settings

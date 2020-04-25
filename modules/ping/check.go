@@ -17,15 +17,15 @@ import (
 const (
 	ProtocolICMP     = 1
 	ProtocolIPv6ICMP = 58
+	msgFail          = "fail"
+	msgSuccess       = "success"
 )
-
-// https://github.com/rogpeppe-contrib/golang-net/blob/master/icmp/ping_test.go
 
 func checkIPV4(target string, pingTimeout int) (result string) {
 	dst, err := net.ResolveIPAddr("ip4", target)
 	if err != nil {
 		logger.Log(fmt.Sprintf("failed to resolve %s", target))
-		return "fail"
+		return msgFail
 	}
 
 	var conn *icmp.PacketConn
@@ -33,7 +33,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 	conn, err = icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 	if err != nil {
 		logger.Log("failed to listen for ip4:icmp packets")
-		return "fail"
+		return msgFail
 	}
 
 	m := icmp.Message{
@@ -48,7 +48,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 
 	b, err = m.Marshal(nil)
 	if err != nil {
-		return "fail"
+		return msgFail
 	}
 
 	var n int
@@ -58,10 +58,10 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 	n, err = conn.WriteTo(b, dst)
 	if err != nil {
 		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
-		return "fail"
+		return msgFail
 	} else if n != len(b) {
 		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
-		return "fail"
+		return msgFail
 	}
 
 	reply := make([]byte, 1500)
@@ -72,7 +72,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 		err = conn.SetReadDeadline(time.Now().Add(time.Duration(pingTimeout) * time.Second))
 		if err != nil {
 			logger.Log(fmt.Sprintf("failed to set response timeout for %s", dst.String()))
-			return "fail"
+			return msgFail
 		}
 
 		var peer net.Addr
@@ -80,7 +80,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 		n, peer, err = conn.ReadFrom(reply)
 		if err != nil {
 			logger.Log(fmt.Sprintf("failed to read reply for target: %s %v", target, err))
-			return "fail"
+			return msgFail
 		}
 
 		if dst.String() != peer.String() {
@@ -103,21 +103,21 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 
 	rm, err = icmp.ParseMessage(ProtocolICMP, reply[:n])
 	if err != nil {
-		return "fail"
+		return msgFail
 	}
 
 	if rm.Type == ipv4.ICMPTypeEchoReply {
-		return "success"
+		return msgSuccess
 	}
 
-	return "fail"
+	return msgFail
 }
 
 func checkIPV6(target string, pingTimeout int) (result string) {
 	dst, err := net.ResolveIPAddr("ip6", target)
 	if err != nil {
 		logger.Log(fmt.Sprintf("failed to resolve %s", target))
-		return "fail"
+		return msgFail
 	}
 
 	var conn6 *icmp.PacketConn
@@ -125,7 +125,7 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 	conn6, err = icmp.ListenPacket("ip6:ipv6-icmp", "::")
 	if err != nil {
 		logger.Log("failed to listen for ip6:ipv6-icmp packets")
-		return "fail"
+		return msgFail
 	}
 
 	m := icmp.Message{
@@ -140,7 +140,7 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 
 	b, err = m.Marshal(nil)
 	if err != nil {
-		return "fail"
+		return msgFail
 	}
 
 	var n int
@@ -150,10 +150,10 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 	n, err = conn6.WriteTo(b, dst)
 	if err != nil {
 		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
-		return "fail"
+		return msgFail
 	} else if n != len(b) {
 		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
-		return "fail"
+		return msgFail
 	}
 
 	reply := make([]byte, 1500)
@@ -163,7 +163,7 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 
 		err = conn6.SetReadDeadline(time.Now().Add(time.Duration(pingTimeout) * time.Second))
 		if err != nil {
-			return "fail"
+			return msgFail
 		}
 
 		var peer net.Addr
@@ -171,7 +171,7 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 		n, peer, err = conn6.ReadFrom(reply)
 		if err != nil {
 			logger.Log(fmt.Sprintf("failed to read reply for target: %s %v", target, err))
-			return "fail"
+			return msgFail
 		}
 
 		if dst.String() != peer.String() {
@@ -190,14 +190,14 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 
 	rm, err = icmp.ParseMessage(ProtocolIPv6ICMP, reply[:n])
 	if err != nil {
-		return "fail"
+		return msgFail
 	}
 
 	if rm.Type == ipv6.ICMPTypeEchoReply {
-		return "success"
+		return msgSuccess
 	}
 
-	return "fail"
+	return msgFail
 }
 
 func checkTarget(t *net.IP, pingTimeout int) (result string) {

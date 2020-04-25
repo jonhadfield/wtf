@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"fmt"
 	"os/user"
 	"sort"
 	"strings"
@@ -63,32 +62,13 @@ func (widget *Widget) content() (string, string, bool) {
 
 	targets := parseTargets(widget.settings.targets)
 
-	var outList []string
+	var outList results
 
 	var ch = make(chan string)
 
 	for _, t := range targets {
 		go func(t target) {
-			o := t.raw
-
-			if t.ips == nil {
-				o = fmt.Sprintf("🔴 %s (lookup failed)", t.raw)
-			} else {
-				if widget.settings.showIP && t.raw != t.ips[0].String() {
-					o = fmt.Sprintf("%s (%s)", t.raw, t.ips[0])
-				}
-
-				switch checkTarget(t.ips[0], widget.settings.pingTimeout) {
-				case "fail":
-					o = fmt.Sprintf("🔴 %s", o)
-				case "warn":
-					o = fmt.Sprintf("🟠 %s", o)
-				case "success":
-					o = fmt.Sprintf("🟢 %s", o)
-				}
-			}
-
-			ch <- o
+			ch <- formatOutput(widget, t)
 		}(t)
 	}
 
@@ -99,7 +79,11 @@ func (widget *Widget) content() (string, string, bool) {
 		outList = append(outList, res)
 	}
 
-	sort.Strings(outList)
+	if widget.settings.useEmoji {
+		sort.Strings(outList)
+	} else {
+		sort.Sort(outList)
+	}
 
 	output := strings.Join(outList, "\n")
 
