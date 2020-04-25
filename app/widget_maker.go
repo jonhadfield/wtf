@@ -47,7 +47,7 @@ import (
 	"github.com/wtfutil/wtf/modules/opsgenie"
 	"github.com/wtfutil/wtf/modules/pagerduty"
 	"github.com/wtfutil/wtf/modules/pihole"
-	"github.com/wtfutil/wtf/modules/ping"
+	"github.com/wtfutil/wtf/modules/pingcheck"
 	"github.com/wtfutil/wtf/modules/pocket"
 	"github.com/wtfutil/wtf/modules/power"
 	"github.com/wtfutil/wtf/modules/resourceusage"
@@ -232,9 +232,9 @@ func MakeWidget(
 	case "pihole":
 		settings := pihole.NewSettingsFromYAML(moduleName, moduleConfig, config)
 		widget = pihole.NewWidget(app, pages, settings)
-	case "ping":
-		settings := ping.NewSettingsFromYAML(moduleName, moduleConfig, config)
-		widget = ping.NewWidget(app, settings)
+	case "pingcheck":
+		settings := pingcheck.NewSettingsFromYAML(moduleName, moduleConfig, config)
+		widget = pingcheck.NewWidget(app, settings)
 	case "power":
 		settings := power.NewSettingsFromYAML(moduleName, moduleConfig, config)
 		widget = power.NewWidget(app, settings)
