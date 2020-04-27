@@ -15,6 +15,7 @@ type Settings struct {
 	wrapText       bool
 	apiUrl         string
 	token          string
+	securedToken    string
 	showTopItems   int
 	showTopClients int
 	maxClientWidth int
@@ -33,6 +34,13 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 		maxClientWidth: ymlConfig.UInt("maxClientWidth", 20),
 		maxDomainWidth: ymlConfig.UInt("maxDomainWidth", 20),
 	}
+	cfg.ConfigureSecret(
+		globalConfig,
+		"",
+		name,
+		nil,
+		&settings.token,
+	)
 
 	return &settings
 }
