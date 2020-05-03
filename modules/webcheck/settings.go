@@ -17,6 +17,7 @@ type Settings struct {
 	warnCodes       []int
 	followRedirects bool
 	ignoreBadSSL    bool
+	useEmoji        bool
 	format          bool
 	formatStyle     string
 	wrapText        bool
@@ -29,6 +30,8 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 		warnCodes:       utils.ToInts(ymlConfig.UList("warnCodes")),
 		followRedirects: ymlConfig.UBool("followRedirects", true),
 		ignoreBadSSL:    ymlConfig.UBool("ignoreBadSSL", false),
+		useEmoji:        ymlConfig.UBool("useEmoji", true),
 	}
+
 	return &settings
 }

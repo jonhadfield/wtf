@@ -1,7 +1,6 @@
 package webcheck
 
 import (
-	"fmt"
 	"github.com/rivo/tview"
 	"github.com/wtfutil/wtf/view"
 	"sort"
@@ -41,6 +40,7 @@ func (widget *Widget) Refresh() {
 	if widget.Disabled() {
 		return
 	}
+
 	widget.Redraw(widget.content)
 }
 
@@ -55,22 +55,13 @@ func (widget *Widget) content() (string, string, bool) {
 
 	client := getClient(widget.settings)
 
-	var outList []string
+	var outList results
 
 	var ch = make(chan string)
+
 	for _, url := range widget.settings.urls {
 		go func(url string) {
-			var o string
-
-			switch checkURL(client, url, widget.settings.warnCodes) {
-			case "fail":
-				o = fmt.Sprintf("🔴 %s", url)
-			case "warn":
-				o = fmt.Sprintf("🟠 %s", url)
-			case "success":
-				o = fmt.Sprintf("🟢 %s", url)
-			}
-			ch <- o
+			ch <- formatOutput(widget, url, checkURL(client, url, widget.settings.warnCodes))
 		}(url)
 	}
 
@@ -81,7 +72,11 @@ func (widget *Widget) content() (string, string, bool) {
 		outList = append(outList, res)
 	}
 
-	sort.Strings(outList)
+	if widget.settings.useEmoji {
+		sort.Strings(outList)
+	} else {
+		sort.Sort(outList)
+	}
 
 	output := strings.Join(outList, "\n")
 

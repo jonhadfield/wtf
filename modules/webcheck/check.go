@@ -78,5 +78,6 @@ func contains(s []int, e int) bool {
 			return true
 		}
 	}
+
 	return false
 }
