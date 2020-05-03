@@ -24,7 +24,7 @@ const (
 func checkIPV4(target string, pingTimeout int) (result string) {
 	dst, err := net.ResolveIPAddr("ip4", target)
 	if err != nil {
-		logger.Log(fmt.Sprintf("failed to resolve %s", target))
+		logger.Log(fmt.Sprintf("%s | failed to resolve %s", moduleName, target))
 		return msgFail
 	}
 
@@ -32,7 +32,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 
 	conn, err = icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 	if err != nil {
-		logger.Log("failed to listen for ip4:icmp packets")
+		logger.Log(fmt.Sprintf("%s | failed to listen for ip4:icmp packets", moduleName))
 		return msgFail
 	}
 
@@ -53,14 +53,14 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 
 	var n int
 
-	logger.Log(fmt.Sprintf("pinging: %s", dst.String()))
+	logger.Log(fmt.Sprintf("%s | pinging: %s", moduleName, dst.String()))
 
 	n, err = conn.WriteTo(b, dst)
 	if err != nil {
-		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
+		logger.Log(fmt.Sprintf("%s | failed to send ping to %s", moduleName, dst.String()))
 		return msgFail
 	} else if n != len(b) {
-		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
+		logger.Log(fmt.Sprintf("%s | failed to send ping to %s", moduleName, dst.String()))
 		return msgFail
 	}
 
@@ -71,7 +71,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 
 		err = conn.SetReadDeadline(time.Now().Add(time.Duration(pingTimeout) * time.Second))
 		if err != nil {
-			logger.Log(fmt.Sprintf("failed to set response timeout for %s", dst.String()))
+			logger.Log(fmt.Sprintf("%s | failed to set response timeout for %s", moduleName, dst.String()))
 			return msgFail
 		}
 
@@ -79,14 +79,13 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 
 		n, peer, err = conn.ReadFrom(reply)
 		if err != nil {
-			logger.Log(fmt.Sprintf("failed to read reply for target: %s %v", target, err))
+			logger.Log(fmt.Sprintf("%s | failed to read reply for target: %s %v", moduleName, target, err))
 			return msgFail
 		}
 
 		if dst.String() != peer.String() {
-			logger.Log(fmt.Sprintf("received reply for %s from wrong peer: %s. continue waiting",
-				dst.String(), peer.String()))
-
+			//logger.Log(fmt.Sprintf("received reply for %s from wrong peer: %s. continue waiting",
+			//	dst.String(), peer.String()))
 			waitEnd := time.Since(waitStart)
 
 			pingTimeout -= int(math.Round(waitEnd.Seconds()))
@@ -94,7 +93,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 			continue
 		}
 
-		logger.Log(fmt.Sprintf("got reply for %s", dst.String()))
+		logger.Log(fmt.Sprintf("%s | got reply for %s", moduleName, dst.String()))
 
 		break
 	}
@@ -116,7 +115,7 @@ func checkIPV4(target string, pingTimeout int) (result string) {
 func checkIPV6(target string, pingTimeout int) (result string) {
 	dst, err := net.ResolveIPAddr("ip6", target)
 	if err != nil {
-		logger.Log(fmt.Sprintf("failed to resolve %s", target))
+		logger.Log(fmt.Sprintf("%s | failed to resolve %s", moduleName, target))
 		return msgFail
 	}
 
@@ -124,7 +123,7 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 
 	conn6, err = icmp.ListenPacket("ip6:ipv6-icmp", "::")
 	if err != nil {
-		logger.Log("failed to listen for ip6:ipv6-icmp packets")
+		logger.Log(fmt.Sprintf(" %s | failed to listen for ip6:ipv6-icmp packets", moduleName))
 		return msgFail
 	}
 
@@ -145,14 +144,14 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 
 	var n int
 
-	logger.Log(fmt.Sprintf("pinging: %s", dst.String()))
+	//logger.Log(fmt.Sprintf("%s | pinging: %s", moduleName, dst.String()))
 
 	n, err = conn6.WriteTo(b, dst)
 	if err != nil {
-		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
+		logger.Log(fmt.Sprintf("%s | failed to send ping to %s", moduleName, dst.String()))
 		return msgFail
 	} else if n != len(b) {
-		logger.Log(fmt.Sprintf("failed to send ping to %s", dst.String()))
+		logger.Log(fmt.Sprintf("%s | failed to send ping to %s", moduleName, dst.String()))
 		return msgFail
 	}
 
@@ -170,12 +169,13 @@ func checkIPV6(target string, pingTimeout int) (result string) {
 
 		n, peer, err = conn6.ReadFrom(reply)
 		if err != nil {
-			logger.Log(fmt.Sprintf("failed to read reply for target: %s %v", target, err))
+			logger.Log(fmt.Sprintf("%s | failed to read reply for target: %s %v", moduleName, target, err))
 			return msgFail
 		}
 
 		if dst.String() != peer.String() {
-			logger.Log(fmt.Sprintf("received reply for %s from wrong peer: %s. continue waiting.", dst.String(), peer.String()))
+			logger.Log(fmt.Sprintf("%s | received reply for %s from wrong peer: %s. continue waiting.",
+				moduleName, dst.String(), peer.String()))
 
 			waitEnd := time.Since(waitStart)
 			pingTimeout -= int(math.Round(waitEnd.Seconds()))
@@ -223,7 +223,7 @@ func ipsFromTarget(t string) (ips []*net.IP, isIP bool, err error) {
 
 	pIPs, err = net.LookupHost(t)
 	if err != nil {
-		logger.Log(fmt.Sprintf("lookup failed for: %s", t))
+		logger.Log(fmt.Sprintf("%s | lookup failed for: %s", moduleName, t))
 		return
 	}
 

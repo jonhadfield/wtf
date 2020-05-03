@@ -9,6 +9,7 @@ import (
 const (
 	defaultFocusable = true
 	defaultTitle     = "Ping"
+	moduleName       = "Ping"
 )
 
 type Settings struct {
