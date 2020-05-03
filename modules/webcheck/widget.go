@@ -1,10 +1,11 @@
 package webcheck
 
 import (
-	"github.com/rivo/tview"
-	"github.com/wtfutil/wtf/view"
 	"sort"
 	"strings"
+
+	"github.com/rivo/tview"
+	"github.com/wtfutil/wtf/view"
 )
 
 type Widget struct {

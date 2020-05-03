@@ -9,6 +9,7 @@ import (
 const (
 	defaultFocusable = true
 	defaultTitle     = "WebCheck"
+	moduleName       = "WebCheck"
 )
 
 type Settings struct {

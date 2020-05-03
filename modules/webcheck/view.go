@@ -8,19 +8,19 @@ func formatOutput(widget *Widget, url string, result string) string {
 	var o string
 
 	switch result {
-	case "fail":
+	case msgFail:
 		if widget.settings.useEmoji {
 			o = fmt.Sprintf("🔴 %s", url)
 		} else {
 			o = fmt.Sprintf("[red]%s", url)
 		}
-	case "warn":
+	case msgWarn:
 		if widget.settings.useEmoji {
 			o = fmt.Sprintf("🟠 %s", url)
 		} else {
 			o = fmt.Sprintf("[yellow]%s", url)
 		}
-	case "success":
+	case msgSuccess:
 		if widget.settings.useEmoji {
 			o = fmt.Sprintf("🟢 %s", url)
 		} else {
