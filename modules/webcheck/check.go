@@ -73,10 +73,10 @@ func checkURL(client http.Client, url string, warnCodes []int) (result string) {
 
 func getClient(settings *Settings) http.Client {
 	tr := &http.Transport{
-		TLSHandshakeTimeout:   5 * time.Second,
+		TLSHandshakeTimeout:   time.Duration(settings.tlsHandshakeTimeout) * time.Second,
 		DisableKeepAlives:     true,
 		DisableCompression:    true,
-		ResponseHeaderTimeout: 3 * time.Second,
+		ResponseHeaderTimeout: time.Duration(settings.responseHeaderTimeout) * time.Second,
 	}
 
 	if settings.ignoreBadSSL {
@@ -92,7 +92,7 @@ func getClient(settings *Settings) http.Client {
 
 	return http.Client{
 		Transport:     tr,
-		Timeout:       5 * time.Second,
+		Timeout:       time.Duration(settings.fullResponseTimeout) * time.Second,
 		CheckRedirect: cr,
 	}
 }
