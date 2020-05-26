@@ -12,6 +12,7 @@ require (
 	github.com/adlio/trello v1.7.0
 	github.com/alecthomas/chroma v0.7.3
 	github.com/andygrunwald/go-gerrit v0.0.0-20190825170856-5959a9bf9ff8
+	github.com/aws/aws-sdk-go v1.19.11
 	github.com/briandowns/openweathermap v0.0.0-20180804155945-5f41b7c9d92d
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
