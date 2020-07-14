@@ -55,10 +55,13 @@ func (widget *Widget) HelpText() string {
 func (widget *Widget) content() (string, string, bool) {
 	title := widget.CommonSettings().Title
 
-	cUser, _ := user.Current()
-	if cUser != nil && cUser.Uid != "0" {
-		return title, "module requires wtfutil is run as root", true
+	if widget.settings.privileged {
+		cUser, _ := user.Current()
+		if cUser != nil && cUser.Uid != "0" {
+			return title, "privileged ICMP requires wtfutil is run as root", true
+		}
 	}
+
 
 	targets := parseTargets(widget.settings.targets)
 

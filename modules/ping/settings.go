@@ -17,6 +17,7 @@ type Settings struct {
 	targets     []string
 	pingTimeout int
 	showIP      bool
+	privileged  bool
 	useEmoji    bool
 	logging     bool
 	wrapText    bool
@@ -30,6 +31,7 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 		pingTimeout: ymlConfig.UInt("pingTimeout", 4),
 		useEmoji:    ymlConfig.UBool("useEmoji", true),
 		logging:     ymlConfig.UBool("logging", false),
+		privileged:  ymlConfig.UBool("privileged", false),
 	}
 
 	return &settings

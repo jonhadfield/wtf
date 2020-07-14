@@ -18,7 +18,7 @@ func getPingResult(widget *Widget, t target, logging bool) string {
 			o = fmt.Sprintf("%s (%s)", t.raw, t.ips[0])
 		}
 
-		switch checkTarget(t.ips[0], widget.settings.pingTimeout, logging) {
+		switch checkTarget(t.ips[0], widget.settings.pingTimeout, widget.settings.privileged, logging) {
 		case msgFail:
 			if widget.settings.useEmoji {
 				o = fmt.Sprintf("🔴 %s", o)

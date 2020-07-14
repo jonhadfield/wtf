@@ -20,19 +20,44 @@ const (
 	msgSuccess       = "success"
 )
 
-func checkIPV4(target string, pingTimeout int, logging bool) (result string) {
-	dst, err := net.ResolveIPAddr("ip4", target)
-	if err != nil {
-		return msgFail
+func checkIPV4(target string, pingTimeout int, privileged bool, logging bool) (result string) {
+	logger.Log(fmt.Sprintf("PRIVILEGED: %t", privileged))
+	var err error
+	var dst net.Addr
+	if privileged {
+		dst, err = net.ResolveIPAddr("ip4", target)
+		if err != nil {
+			return msgFail
+		}
+	} else {
+		ipaddr, err := net.ResolveIPAddr("ip4", target)
+		if err != nil {
+			return msgFail
+		}
+
+		//var dst net.Addr = ipaddr
+		dst = ipaddr
+		dst = &net.UDPAddr{IP: ipaddr.IP, Zone: ipaddr.Zone}
 	}
 
 	var conn *icmp.PacketConn
-	conn, err = icmp.ListenPacket("ip4:icmp", "0.0.0.0")
-	if err != nil {
-		if logging {
-			logger.Log(fmt.Sprintf("%s | failed to listen for ip4:icmp packets", moduleName))
+
+	if privileged {
+		conn, err = icmp.ListenPacket("ip4:icmp", "0.0.0.0")
+		if err != nil {
+			if logging {
+				logger.Log(fmt.Sprintf("%s | failed to listen for ip4:icmp packets", moduleName))
+			}
+			return msgFail
 		}
-		return msgFail
+	} else {
+		conn, err = icmp.ListenPacket("udp4", "")
+		if err != nil {
+			if logging {
+				panic(fmt.Sprintf("%s | failed to listen for udp4 packets: %+v", "ping", err))
+			}
+			return msgFail
+		}
 	}
 
 	defer func() {
@@ -254,9 +279,9 @@ func checkIPV6(target string, pingTimeout int, logging bool) (result string) {
 	return msgFail
 }
 
-func checkTarget(t *net.IP, pingTimeout int, logging bool) (result string) {
+func checkTarget(t *net.IP, pingTimeout int, privileged bool, logging bool) (result string) {
 	if t.To4() != nil {
-		result = checkIPV4(t.String(), pingTimeout, logging)
+		result = checkIPV4(t.String(), pingTimeout, privileged, logging)
 		return
 	}
 
