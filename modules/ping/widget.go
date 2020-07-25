@@ -71,7 +71,7 @@ func (widget *Widget) content() (string, string, bool) {
 
 	for _, t := range targets {
 		go func(t target) {
-			ch <- getPingResult(widget, t, widget.settings.logging)
+			ch <- getPingResult(widget, t)
 		}(t)
 	}
 

@@ -28,7 +28,7 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 		common:      cfg.NewCommonSettingsFromModule(name, defaultTitle, defaultFocusable, ymlConfig, globalConfig),
 		targets:     utils.ToStrs(ymlConfig.UList("targets")),
 		showIP:      ymlConfig.UBool("showIP", true),
-		pingTimeout: ymlConfig.UInt("pingTimeout", 4),
+		pingTimeout: ymlConfig.UInt("pingTimeout", 200),
 		useEmoji:    ymlConfig.UBool("useEmoji", true),
 		logging:     ymlConfig.UBool("logging", false),
 		privileged:  ymlConfig.UBool("privileged", false),

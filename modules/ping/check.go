@@ -1,16 +1,9 @@
 package ping
 
 import (
-	"bytes"
 	"fmt"
-	"math/rand"
-	"net"
-	"time"
-
 	"github.com/wtfutil/wtf/logger"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
+	"net"
 )
 
 const (
@@ -20,272 +13,13 @@ const (
 	msgSuccess       = "success"
 )
 
-func checkIPV4(target string, pingTimeout int, privileged bool, logging bool) (result string) {
-	logger.Log(fmt.Sprintf("PRIVILEGED: %t", privileged))
-	var err error
-	var dst net.Addr
-	if privileged {
-		dst, err = net.ResolveIPAddr("ip4", target)
-		if err != nil {
-			return msgFail
-		}
-	} else {
-		ipaddr, err := net.ResolveIPAddr("ip4", target)
-		if err != nil {
-			return msgFail
-		}
-
-		//var dst net.Addr = ipaddr
-		dst = ipaddr
-		dst = &net.UDPAddr{IP: ipaddr.IP, Zone: ipaddr.Zone}
-	}
-
-	var conn *icmp.PacketConn
-
-	if privileged {
-		conn, err = icmp.ListenPacket("ip4:icmp", "0.0.0.0")
-		if err != nil {
-			if logging {
-				logger.Log(fmt.Sprintf("%s | failed to listen for ip4:icmp packets", moduleName))
-			}
-			return msgFail
-		}
-	} else {
-		conn, err = icmp.ListenPacket("udp4", "")
-		if err != nil {
-			if logging {
-				panic(fmt.Sprintf("%s | failed to listen for udp4 packets: %+v", "ping", err))
-			}
-			return msgFail
-		}
-	}
-
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	pSeq := rand.Intn(65536)
-	pID := rand.Intn(65536)
-	pData := []byte("wtf")
-
-	m := icmp.Message{
-		Type: ipv4.ICMPTypeEcho, Code: 0,
-		Body: &icmp.Echo{
-			ID:   pID,
-			Seq:  pSeq,
-			Data: pData,
-		},
-	}
-
-	var b []byte
-
-	b, err = m.Marshal(nil)
-	if err != nil {
-		return msgFail
-	}
-
-	var n int
-
-	if logging {
-		logger.Log(fmt.Sprintf("%s | pinging: %s", moduleName, dst.String()))
-	}
-
-	n, err = conn.WriteTo(b, dst)
-	if err != nil || n != len(b) {
-		if logging {
-			logger.Log(fmt.Sprintf("%s | failed to send ping to %s", moduleName, dst.String()))
-		}
-
-		return msgFail
-	}
-
-	reply := make([]byte, 1500)
-
-	waitStart := time.Now()
-	waitDuration := time.Duration(pingTimeout) * time.Second
-
-	for {
-		if time.Since(waitStart) > waitDuration {
-			if logging {
-				logger.Log(fmt.Sprintf("%s | timed out waiting for: %s", moduleName, target))
-			}
-
-			return msgFail
-		}
-
-		if err = conn.SetReadDeadline(time.Now().Add(waitDuration)); err != nil {
-			if logging {
-				logger.Log(fmt.Sprintf("%s | failed to set read deadline: %v", moduleName, err))
-			}
-			return msgFail
-		}
-
-		var peer net.Addr
-
-		n, peer, err = conn.ReadFrom(reply)
-		if err != nil {
-			if logging {
-				logger.Log(fmt.Sprintf("%s | failed to read reply for target: %s %v", moduleName, target, err))
-			}
-
-			return msgFail
-		}
-
-		// if we received a reply from a different request then ignore
-		if dst.String() != peer.String() {
-			continue
-		}
-
-		// if we received a reply from the intended recipient then validate content
-		var rm *icmp.Message
-		rm, err = icmp.ParseMessage(ProtocolICMP, reply[:n])
-		if err != nil {
-			return msgFail
-		}
-
-		if rm.Type == ipv4.ICMPTypeEchoReply {
-			pe := rm.Body.(*icmp.Echo)
-			if pID == pe.ID && pSeq == pe.Seq && bytes.Equal(pe.Data, pData) {
-				if logging {
-					logger.Log(fmt.Sprintf("%s | got reply for %s", moduleName, dst.String()))
-				}
-				return msgSuccess
-			}
-			continue
-		}
-
-		break
-	}
-
-	return msgFail
-}
-
-func checkIPV6(target string, pingTimeout int, logging bool) (result string) {
-	dst, err := net.ResolveIPAddr("ip6", target)
-	if err != nil {
-		if logging {
-			logger.Log(fmt.Sprintf("%s | failed to resolve %s", moduleName, target))
-		}
-
-		return msgFail
-	}
-
-	var conn6 *icmp.PacketConn
-
-	conn6, err = icmp.ListenPacket("ip6:ipv6-icmp", "::")
-	if err != nil {
-		if logging {
-			logger.Log(fmt.Sprintf(" %s | failed to listen for ip6:ipv6-icmp packets", moduleName))
-		}
-		return msgFail
-	}
-
-	defer func() {
-		_ = conn6.Close()
-	}()
-
-	pSeq := rand.Intn(65536)
-	pID := rand.Intn(65536)
-	pData := []byte("wtf")
-
-	m := icmp.Message{
-		Type: ipv6.ICMPTypeEchoRequest, Code: 0,
-		Body: &icmp.Echo{
-			ID:   pID,
-			Seq:  pSeq,
-			Data: pData,
-		},
-	}
-
-	var b []byte
-
-	b, err = m.Marshal(nil)
-	if err != nil {
-		return msgFail
-	}
-
-	var n int
-
-	if logging {
-		logger.Log(fmt.Sprintf("%s | pinging: %s", moduleName, dst.String()))
-	}
-
-	n, err = conn6.WriteTo(b, dst)
-	if err != nil || n != len(b) {
-		if logging {
-			logger.Log(fmt.Sprintf("%s | failed to send ping to %s", moduleName, dst.String()))
-		}
-
-		return msgFail
-	}
-
-	reply := make([]byte, 1500)
-
-	waitStart := time.Now()
-	waitDuration := time.Duration(pingTimeout) * time.Second
-
-	for {
-		if time.Since(waitStart) > waitDuration {
-			if logging {
-				logger.Log(fmt.Sprintf("%s | timed out waiting for: %s", moduleName, target))
-			}
-
-			return msgFail
-		}
-
-		if err = conn6.SetReadDeadline(time.Now().Add(waitDuration)); err != nil {
-			if logging {
-				logger.Log(fmt.Sprintf("%s | failed to set read deadline: %v", moduleName, err))
-			}
-			return msgFail
-		}
-
-		var peer net.Addr
-
-		n, peer, err = conn6.ReadFrom(reply)
-		if err != nil {
-			return msgFail
-		}
-
-		if dst.String() != peer.String() {
-			continue
-		}
-
-		var rm *icmp.Message
-
-		rm, err = icmp.ParseMessage(ProtocolIPv6ICMP, reply[:n])
-		if err != nil {
-			return msgFail
-		}
-
-		if rm.Type == ipv6.ICMPTypeEchoReply {
-			pe := rm.Body.(*icmp.Echo)
-			if pID == pe.ID && pSeq == pe.Seq && bytes.Equal(pe.Data, pData) {
-				if logging {
-					logger.Log(fmt.Sprintf("%s | got reply for %s", moduleName, dst.String()))
-				}
-				return msgSuccess
-			}
-			continue
-		}
-
-		if logging {
-			logger.Log(fmt.Sprintf("%s | got reply for %s", moduleName, dst.String()))
-		}
-
-		break
-	}
-
-	return msgFail
-}
-
 func checkTarget(t *net.IP, pingTimeout int, privileged bool, logging bool) (result string) {
 	if t.To4() != nil {
 		result = checkIPV4(t.String(), pingTimeout, privileged, logging)
 		return
 	}
 
-	result = checkIPV6(t.String(), pingTimeout, logging)
+	result = checkIPV6(t.String(), pingTimeout, false, logging)
 
 	return
 }
@@ -306,7 +40,6 @@ func ipsFromTarget(t string) (ips []*net.IP, isIP bool, err error) {
 		return
 	}
 
-	// parse each IP
 	for x := 0; x < len(pIPs); x++ {
 		pIP := net.ParseIP(pIPs[x])
 		ips = append(ips, &pIP)
