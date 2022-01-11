@@ -8,7 +8,6 @@ require (
 	github.com/Azure/go-autorest v11.1.2+incompatible // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/PagerDuty/go-pagerduty v0.0.0-20191002190746-f60f4fc45222
-	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictorAvelar/devto-api-go v1.0.0
 	github.com/adlio/trello v1.8.0
 	github.com/alecthomas/chroma v0.8.1
@@ -25,7 +24,6 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gdamore/tcell v1.4.0
-	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/gophercloud/gophercloud v0.5.0 // indirect
@@ -49,7 +47,7 @@ require (
 	github.com/pkg/profile v1.5.0
 	github.com/radovskyb/watcher v1.0.7
 	github.com/rivo/tview v0.0.0-20200108161608-1316ea7a4b35
-	github.com/shirou/gopsutil v2.20.9+incompatible
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/shurcooL/githubv4 v0.0.0-20200802174311-f27d2ca7f6d5
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
@@ -58,9 +56,11 @@ require (
 	github.com/spf13/viper v1.6.1 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.6.1
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/wtfutil/spotigopher v0.0.0-20191127141047-7d8168fe103a
 	github.com/wtfutil/todoist v0.0.2-0.20191216004217-0ec29ceda61a
 	github.com/xanzy/go-gitlab v0.39.0
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	github.com/zmb3/spotify v0.0.0-20191010212056-e12fb981aacb
 	github.com/zorkian/go-datadog-api v2.30.0+incompatible
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
