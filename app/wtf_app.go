@@ -2,19 +2,18 @@ package app
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"time"
-
+	"github.com/fsnotify/fsnotify"
 	_ "github.com/gdamore/tcell/terminfo/extended"
 	"github.com/gdamore/tcell/v2"
 	"github.com/olebedev/config"
-	"github.com/radovskyb/watcher"
 	"github.com/rivo/tview"
 	"github.com/wtfutil/wtf/cfg"
 	"github.com/wtfutil/wtf/support"
 	"github.com/wtfutil/wtf/utils"
 	"github.com/wtfutil/wtf/wtf"
+	"log"
+	"os"
+	"time"
 )
 
 // WtfApp is the container for a collection of widgets that are all constructed from a single
@@ -199,43 +198,71 @@ func (wtfApp *WtfApp) scheduleWidgets() {
 }
 
 func (wtfApp *WtfApp) watchForConfigChanges() {
-	watch := watcher.New()
+	// watch := watcher.New()
+	var err error
 
-	// Notify write events
-	watch.FilterOps(watcher.Write)
+	var watch *fsnotify.Watcher
 
-	go func() {
-		for {
-			select {
-			case <-watch.Event:
-				wtfApp.Stop()
-
-				config := cfg.LoadWtfConfigFile(wtfApp.configFilePath)
-				newApp := NewWtfApp(wtfApp.TViewApp, config, wtfApp.configFilePath)
-				openURLUtil := utils.ToStrs(config.UList("wtf.openUrlUtil", []interface{}{}))
-				utils.Init(config.UString("wtf.openFileUtil", "open"), openURLUtil)
-
-				newApp.Start()
-			case err := <-watch.Error:
-				if err == watcher.ErrWatchedFileDeleted {
-					// Usually happens because the watcher looks for the file as the OS is updating it
-					continue
-				}
-				log.Fatalln(err)
-			case <-watch.Closed:
-				return
-			}
-		}
-	}()
-
-	// Watch config file for changes.
-	absPath, _ := utils.ExpandHomeDir(wtfApp.configFilePath)
-	if err := watch.Add(absPath); err != nil {
+	watch, err = fsnotify.NewWatcher()
+	if err != nil {
 		log.Fatalln(err)
 	}
 
-	// Start the watching process - it'll check for changes every 100ms.
-	if err := watch.Start(time.Millisecond * 100); err != nil {
+	// defer watch.Close()
+
+	go watchLoop(watch, wtfApp)
+
+	absPath, _ := utils.ExpandHomeDir(wtfApp.configFilePath)
+	if err = watch.Add(absPath); err != nil {
 		log.Fatalln(err)
+	}
+
+	// Watch config file for changes.
+	absPath, _ = utils.ExpandHomeDir(wtfApp.configFilePath)
+	if err = watch.Add(absPath); err != nil {
+		log.Fatalln(err)
+	}
+
+	<-make(chan struct{})
+}
+
+func watchLoop(w *fsnotify.Watcher, wtfApp *WtfApp) {
+	defer w.Close()
+
+	for {
+		select {
+		case err, ok := <-w.Errors:
+			if !ok || err != nil {
+
+				return
+			}
+		case e, ok := <-w.Events:
+			if !ok {
+
+				return
+			}
+
+			if !e.Has(fsnotify.Write) && !e.Has(fsnotify.Create) && !e.Has(fsnotify.Rename) && !e.Has(fsnotify.Chmod) {
+				continue
+			}
+
+			wtfApp.Stop()
+
+			for {
+				// wait for write to finish and file be available
+				time.Sleep(100 * time.Millisecond)
+
+				if _, err := os.Stat(e.Name); err == nil {
+					break
+				}
+			}
+
+			config := cfg.LoadWtfConfigFile(wtfApp.configFilePath)
+			newApp := NewWtfApp(wtfApp.TViewApp, config, wtfApp.configFilePath)
+			openURLUtil := utils.ToStrs(config.UList("wtf.openUrlUtil", []interface{}{}))
+			utils.Init(config.UString("wtf.openFileUtil", "open"), openURLUtil)
+
+			newApp.Start()
+		}
 	}
 }

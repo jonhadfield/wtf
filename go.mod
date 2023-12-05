@@ -103,6 +103,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/fsamin/go-dump v1.0.9 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
