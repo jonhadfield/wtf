@@ -3,6 +3,7 @@ package pihole
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/wtfutil/wtf/logger"
 	"io"
 	"net/http"
 	url2 "net/url"
@@ -68,13 +69,14 @@ func getStatus(c http.Client, apiURL string) (status Status, err error) {
 		return status, fmt.Errorf(" failed to retrieve version from Pi-hole server\n http status code: %d",
 			resp.StatusCode)
 	}
-
+	logger.Log(fmt.Sprintf("%d", resp.StatusCode))
 	var rBody []byte
 
 	if rBody, err = io.ReadAll(resp.Body); err != nil {
 		return status, fmt.Errorf(" failed to read status response")
 	}
 
+	logger.Log(fmt.Sprintf("%s", rBody))
 	if err = json.Unmarshal(rBody, &status); err != nil {
 		return status, fmt.Errorf(" failed to retrieve status: check provided api URL and token\n %s",
 			parseError(err))
