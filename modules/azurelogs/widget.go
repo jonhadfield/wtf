@@ -3,11 +3,11 @@ package azurelogs
 import (
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/wtfutil/wtf/modules/azurelogs/session"
 	"strings"
 	"time"
 
 	"github.com/rivo/tview"
+
 	"github.com/wtfutil/wtf/view"
 )
 
@@ -37,7 +37,6 @@ func NewWidget(tviewApp *tview.Application, redrawChan chan bool, _ *tview.Pages
 	}
 
 	widget.settings.RefreshInterval = 60 * time.Second
-	widget.initializeKeyboardControls()
 
 	return &widget
 }
@@ -60,50 +59,39 @@ func (widget *Widget) Refresh() {
 
 /* -------------------- Helper Functions -------------------- */
 
-func (widget *Widget) fetchTableData() (*TableResp, error) {
-	// Use configured query file path instead of hard-coded path
-	queryPath := widget.settings.Queryfile
-	if queryPath == "" {
-		queryPath = "/Users/hadfielj/Repositories/azmon-queries/top-overall-www-hitters.yaml"
-	}
-
-	s, err := session.Init(to.Ptr(queryPath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Azure session: %w", err)
-	}
-
-	tableResp, err := RunQuery(s, nil, s.QueryFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute Azure query: %w", err)
-	}
-
-	return tableResp, nil
-}
 
 func (widget *Widget) fetchDataAsync() {
-	// Fetch table data
-	tableResp, err := widget.fetchTableData()
-
+	sess, err := Init(to.Ptr(widget.settings.Queryfile))
 	if err != nil {
-		widget.lastError = err
-		widget.loading = false
-		widget.Redraw(widget.content) // Trigger redraw to show error
+		widget.setError(fmt.Errorf("failed to initialize Azure session: %w", err))
 		return
 	}
 
-	// Check if we have valid data
-	if tableResp == nil || len(tableResp.Header) == 0 || len(tableResp.Rows) == 0 {
-		widget.lastError = fmt.Errorf("no data returned from query")
-		widget.loading = false
-		widget.Redraw(widget.content) // Trigger redraw to show error
+	// Execute Azure query directly
+	tableResp, err := RunQuery(sess)
+	if err != nil {
+		widget.setError(fmt.Errorf("failed to execute Azure query: %w", err))
 		return
 	}
 
-	// Store the data
+	// Check if we have valid data structure
+	if tableResp == nil || len(tableResp.Header) == 0 {
+		widget.setError(fmt.Errorf("no table structure returned from query"))
+		return
+	}
+
+	// Store the data and mark as loaded
 	widget.tableData = tableResp
 	widget.dataLoaded = true
 	widget.loading = false
-	widget.Redraw(widget.content) // Trigger redraw to show data
+	widget.Redraw(widget.content)
+}
+
+// setError is a helper function to set error state and trigger redraw
+func (widget *Widget) setError(err error) {
+	widget.lastError = err
+	widget.loading = false
+	widget.Redraw(widget.content)
 }
 
 func (widget *Widget) renderTable(title string) (string, string, bool) {
@@ -111,18 +99,25 @@ func (widget *Widget) renderTable(title string) (string, string, bool) {
 		return title, "[red]Error: No table data available[white]", true
 	}
 
-	// Calculate column widths and format table
-	availableWidth := getAvailableTableWidth()
-	colWidths := calculateAdaptiveColumnWidths(widget.tableData, availableWidth)
+	// Calculate column widths and format table - headers are always shown when available
+	colWidths := calculateAdaptiveColumnWidths(widget.tableData, defaultTableWidth)
 
 	var sb strings.Builder
+	// Always show headers when we have table structure
 	widget.formatTableHeaders(&sb, widget.tableData.Header, colWidths)
 	widget.formatTableSeparator(&sb, widget.tableData.Header, colWidths)
-	widget.formatTableRows(&sb, widget.tableData.Rows, widget.tableData.Header, colWidths)
+
+	// Show data rows if available, otherwise show informative message
+	if len(widget.tableData.Rows) == 0 {
+		sb.WriteString("[dim](No data rows returned)[white]\n")
+	} else {
+		widget.formatTableRows(&sb, widget.tableData.Rows, widget.tableData.Header, colWidths)
+	}
 
 	return title, sb.String(), false
 }
 
+// formatTableHeaders writes the table header row to the string builder
 func (widget *Widget) formatTableHeaders(sb *strings.Builder, headers []string, colWidths []int) {
 	for i, header := range headers {
 		if i > 0 {
@@ -132,11 +127,12 @@ func (widget *Widget) formatTableHeaders(sb *strings.Builder, headers []string, 
 		if i < len(colWidths) && len(headerText) > colWidths[i] {
 			headerText = headerText[:colWidths[i]-len(truncateMarker)] + truncateMarker
 		}
-		sb.WriteString(fmt.Sprintf("[cyan]%-*s[cyan]", colWidths[i], headerText))
+		_, _ = fmt.Fprintf(sb, "[lightblue]%-*s[white]", colWidths[i], headerText)
 	}
 	sb.WriteString("\n")
 }
 
+// formatTableSeparator writes the table separator row to the string builder
 func (widget *Widget) formatTableSeparator(sb *strings.Builder, headers []string, colWidths []int) {
 	for i := range headers {
 		if i > 0 {
@@ -147,6 +143,7 @@ func (widget *Widget) formatTableSeparator(sb *strings.Builder, headers []string
 	sb.WriteString("\n")
 }
 
+// formatTableRows writes the table data rows to the string builder
 func (widget *Widget) formatTableRows(sb *strings.Builder, rows []TableRow, headers []string, colWidths []int) {
 	maxRows := maxDisplayRows
 	rowCount := len(rows)
@@ -170,21 +167,18 @@ func (widget *Widget) formatTableRows(sb *strings.Builder, rows []TableRow, head
 				cellText = cellText[:colWidths[colIdx]-len(truncateMarker)] + truncateMarker
 			}
 
-			sb.WriteString(fmt.Sprintf("%-*s", colWidths[colIdx], cellText))
+			_, _ = fmt.Fprintf(sb, "%-*s", colWidths[colIdx], cellText)
 		}
 		sb.WriteString("\n")
 	}
 
 	if len(rows) > maxRows {
-		sb.WriteString(fmt.Sprintf("\n[gray]... (%d more rows truncated for display)[white]\n", len(rows)-maxRows))
+		_, _ = fmt.Fprintf(sb, "\n[gray]... (%d more rows truncated for display)[white]\n", len(rows)-maxRows)
 	}
 }
 
-func getAvailableTableWidth() int {
-	// Return a reasonable default width for terminal display
-	return defaultTableWidth
-}
 
+// calculateAdaptiveColumnWidths computes optimal column widths based on content and available space
 func calculateAdaptiveColumnWidths(tr *TableResp, availableWidth int) []int {
 	if len(tr.Header) == 0 {
 		return []int{}
@@ -198,22 +192,24 @@ func calculateAdaptiveColumnWidths(tr *TableResp, availableWidth int) []int {
 		widths[i] = len(header)
 	}
 
-	// Check data rows to find maximum content width per column
-	maxRows := sampleRowsForWidth // Sample first N rows for width calculation
-	rowCount := len(tr.Rows)
-	if rowCount > maxRows {
-		rowCount = maxRows
-	}
+	// Check data rows to find maximum content width per column (if any rows exist)
+	if len(tr.Rows) > 0 {
+		maxRows := sampleRowsForWidth // Sample first N rows for width calculation
+		rowCount := len(tr.Rows)
+		if rowCount > maxRows {
+			rowCount = maxRows
+		}
 
-	for rowIdx := 0; rowIdx < rowCount; rowIdx++ {
-		row := tr.Rows[rowIdx]
-		for colIdx, cell := range row {
-			if colIdx >= len(widths) {
-				break
-			}
-			cellLength := len(strings.TrimSpace(cell))
-			if cellLength > widths[colIdx] {
-				widths[colIdx] = cellLength
+		for rowIdx := 0; rowIdx < rowCount; rowIdx++ {
+			row := tr.Rows[rowIdx]
+			for colIdx, cell := range row {
+				if colIdx >= len(widths) {
+					break
+				}
+				cellLength := len(strings.TrimSpace(cell))
+				if cellLength > widths[colIdx] {
+					widths[colIdx] = cellLength
+				}
 			}
 		}
 	}
@@ -253,6 +249,11 @@ func calculateAdaptiveColumnWidths(tr *TableResp, availableWidth int) []int {
 func (widget *Widget) content() (string, string, bool) {
 	title := widget.CommonSettings().Title
 
+	// Check if query file is configured
+	if widget.settings.Queryfile == "" {
+		return title, "[red]Error: queryFile must be configured in widget settings[white]\n\n", false
+	}
+
 	// If we have a previous error, show it immediately
 	if widget.lastError != nil {
 		return title, fmt.Sprintf("[red]Error: %v[white]\n\n[dim]Press 'r' to retry[white]", widget.lastError), true
@@ -266,6 +267,7 @@ func (widget *Widget) content() (string, string, bool) {
 	// Show loading text while fetching data
 	if !widget.loading {
 		widget.loading = true
+
 		// Start async data fetch
 		go widget.fetchDataAsync()
 		return title, "[yellow]Loading Azure Logs data...[white]\n\n[dim]• Initializing Azure session\n• Executing query on workspace\n• Processing results[white]", false
